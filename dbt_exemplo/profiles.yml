@@ -1,0 +1,14 @@
+dbt_exemplo:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: analise-dados-513914
+      dataset: dbt_dev
+      threads: 4
+      keyfile: C:/Users/lustrabits/Documents/Projeto-DBT/dbt_exemplo/service-account.json
+      location: US
+      priority: interactive
+      job_execution_timeout_seconds: 300
+      job_retries: 1

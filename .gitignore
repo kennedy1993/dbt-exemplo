@@ -1,0 +1,19 @@
+# Ambientes virtuais Python
+.venv/
+venv/
+ENV/
+__pycache__/
+
+# Artefatos do dbt
+target/
+dbt_packages/
+logs/
+**/target/
+**/dbt_packages/
+**/logs/
+
+# Credenciais / Chaves de Serviço (NUNCA versionar no Git)
+*.json
+!package.json
+.env
+

@@ -1,0 +1,15 @@
+version: 2
+
+unit_tests:
+  - name: test_my_second_dbt_model_filters_id_1
+    description: "Verifica se my_second_dbt_model filtra apenas o registro com id = 1."
+    model: my_second_dbt_model
+    given:
+      - input: ref('my_first_dbt_model')
+        rows:
+          - {id: 1}
+          - {id: null}
+    expect:
+      rows:
+        - {id: 1}
+
