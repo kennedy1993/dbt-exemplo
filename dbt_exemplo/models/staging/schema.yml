@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: stg_clientes
+    description: "Camada Staging de clientes: higieniza strings, tipa colunas e padroniza nomenclaturas a partir do seed raw_clientes."
+    columns:
+      - name: cliente_id
+        description: "Identificador único do cliente (chave primária)."
+        data_tests:
+          - unique
+          - not_null
+      - name: nome_cliente
+        description: "Nome completo do cliente sem espaços excedentes."
+        data_tests:
+          - not_null
+      - name: email
+        description: "Endereço de e-mail do cliente."
+        data_tests:
+          - not_null
+      - name: cidade
+        description: "Cidade de residência do cliente."
+      - name: uf
+        description: "Sigla da Unidade Federativa (Estado) do cliente."
+        data_tests:
+          - not_null
+      - name: data_cadastro
+        description: "Data em que o cliente realizou o cadastro na plataforma."
+
+  - name: stg_pedidos
+    description: "Camada Staging de pedidos: higieniza strings, converte tipos numéricos/datas e padroniza colunas a partir do seed raw_pedidos."
+    columns:
+      - name: pedido_id
+        description: "Identificador único do pedido (chave primária)."
+        data_tests:
+          - unique
+          - not_null
+      - name: cliente_id
+        description: "Chave estrangeira referenciando o cliente que realizou o pedido."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clientes')
+                field: cliente_id
+      - name: data_pedido
+        description: "Data em que o pedido foi realizado."
+        data_tests:
+          - not_null
+      - name: status_pedido
+        description: "Status atual do pedido no fluxo operacional."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['concluido', 'pendente', 'cancelado']
+      - name: valor_pedido
+        description: "Valor monetário total do pedido em reais (BRL)."
+        data_tests:
+          - not_null
+      - name: metodo_pagamento
+        description: "Forma de pagamento utilizada no pedido."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pix', 'cartao_credito', 'boleto']

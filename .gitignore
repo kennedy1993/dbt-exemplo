@@ -15,5 +15,6 @@ logs/
 # Credenciais / Chaves de Serviço (NUNCA versionar no Git)
 *.json
 !package.json
+!.vscode/settings.json
 .env
 

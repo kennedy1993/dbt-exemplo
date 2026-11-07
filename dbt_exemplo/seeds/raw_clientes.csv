@@ -1,0 +1,12 @@
+id_cliente,nome_cliente,email,cidade,estado,data_cadastro
+1,Ana Carolina Silva,ana.silva@email.com,São Paulo,SP,2026-01-10
+2,Bruno Oliveira Santos,bruno.santos@email.com,Rio de Janeiro,RJ,2026-01-15
+3,Carla Mendes Souza,carla.souza@email.com,Belo Horizonte,MG,2026-02-01
+4,Diego Ferreira Lima,diego.lima@email.com,Curitiba,PR,2026-02-12
+5,Elena Costa Pereira,elena.pereira@email.com,Porto Alegre,RS,2026-03-05
+6,Fabio Rodrigues Alves,fabio.alves@email.com,Salvador,BA,2026-03-18
+7,Gabriela Martins Rocha,gabriela.rocha@email.com,Recife,PE,2026-04-02
+8,Henrique Gomes Ribeiro,henrique.ribeiro@email.com,Fortaleza,CE,2026-04-20
+9,Isabela Carvalho Dias,isabela.dias@email.com,Brasília,DF,2026-05-01
+10,João Pedro Nascimento,joao.nascimento@email.com,Manaus,AM,2026-05-15
+

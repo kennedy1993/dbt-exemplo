@@ -1,0 +1,22 @@
+version: 2
+
+unit_tests:
+  - name: test_segmentacao_clientes_vip_e_ativo
+    description: "Valida a regra de negócio de classificação de clientes em VIP (>= 1000), Ativo e Sem Compras Concluidas."
+    model: dim_clientes
+    given:
+      - input: ref('stg_clientes')
+        rows:
+          - {cliente_id: 1, nome_cliente: 'Ana', email: 'ana@email.com', cidade: 'SP', uf: 'SP', data_cadastro: '2026-01-10'}
+          - {cliente_id: 2, nome_cliente: 'Bruno', email: 'bruno@email.com', cidade: 'RJ', uf: 'RJ', data_cadastro: '2026-01-15'}
+          - {cliente_id: 3, nome_cliente: 'Carlos', email: 'carlos@email.com', cidade: 'MG', uf: 'MG', data_cadastro: '2026-02-01'}
+      - input: ref('int_pedidos_por_cliente')
+        rows:
+          - {cliente_id: 1, total_pedidos: 2, pedidos_concluidos: 2, receita_total: 1500.00, ticket_medio: 750.00, data_primeiro_pedido: '2026-01-12', data_ultimo_pedido: '2026-02-05'}
+          - {cliente_id: 2, total_pedidos: 1, pedidos_concluidos: 1, receita_total: 300.00, ticket_medio: 300.00, data_primeiro_pedido: '2026-01-20', data_ultimo_pedido: '2026-01-20'}
+    expect:
+      rows:
+        - {cliente_id: 1, segmento_cliente: 'VIP', receita_total: 1500.00}
+        - {cliente_id: 2, segmento_cliente: 'Ativo', receita_total: 300.00}
+        - {cliente_id: 3, segmento_cliente: 'Sem Compras Concluidas', receita_total: 0}
+

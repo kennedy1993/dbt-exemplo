@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_pedidos_por_cliente
+    description: "Camada Intermediate: agrega métricas financeiras e comportamentais de pedidos por cliente antes da junção dimensional."
+    columns:
+      - name: cliente_id
+        description: "Identificador único do cliente."
+        data_tests:
+          - unique
+          - not_null
+      - name: total_pedidos
+        description: "Quantidade total de pedidos realizados pelo cliente (todos os status)."
+        data_tests:
+          - not_null
+      - name: pedidos_concluidos
+        description: "Quantidade de pedidos com status concluido."
+        data_tests:
+          - not_null
+      - name: receita_total
+        description: "Soma do valor dos pedidos concluídos do cliente."
+        data_tests:
+          - not_null
+      - name: ticket_medio
+        description: "Valor médio gasto por pedido concluído."
+      - name: data_primeiro_pedido
+        description: "Data da primeira compra registrada do cliente."
+      - name: data_ultimo_pedido
+        description: "Data da compra mais recente do cliente."
+

@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: dim_clientes
+    description: "Tabela Dimensão de Clientes (Star Schema): consolida dados cadastrais, histórico financeiro e segmentação de clientes (VIP, Ativo, Sem Compras Concluidas)."
+    columns:
+      - name: cliente_id
+        description: "Identificador único do cliente (chave primária da dimensão)."
+        data_tests:
+          - unique
+          - not_null
+      - name: nome_cliente
+        description: "Nome completo do cliente."
+        data_tests:
+          - not_null
+      - name: email
+        description: "E-mail principal de contato do cliente."
+      - name: cidade
+        description: "Cidade de localização do cliente."
+      - name: uf
+        description: "Unidade Federativa (Estado) do cliente."
+      - name: data_cadastro
+        description: "Data de cadastro do cliente."
+      - name: total_pedidos
+        description: "Total histórico de pedidos realizados pelo cliente."
+        data_tests:
+          - not_null
+      - name: pedidos_concluidos
+        description: "Total de pedidos efetivamente pagos/concluídos."
+        data_tests:
+          - not_null
+      - name: receita_total
+        description: "Faturamento total gerado pelo cliente (LTV atual)."
+        data_tests:
+          - not_null
+      - name: ticket_medio
+        description: "Ticket médio por pedido concluído."
+      - name: data_primeiro_pedido
+        description: "Data da primeira compra do cliente."
+      - name: data_ultimo_pedido
+        description: "Data da última compra do cliente."
+      - name: segmento_cliente
+        description: "Classificação comercial do cliente baseada em faturamento e atividade."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['VIP', 'Ativo', 'Sem Compras Concluidas']
+
+  - name: fct_pedidos
+    description: "Tabela Fato de Pedidos (Star Schema): registra cada transação enriquecida com localização e métricas de receita líquida."
+    columns:
+      - name: pedido_id
+        description: "Identificador único da transação de pedido (chave primária da fato)."
+        data_tests:
+          - unique
+          - not_null
+      - name: cliente_id
+        description: "Chave estrangeira para dim_clientes."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_clientes')
+                field: cliente_id
+      - name: nome_cliente
+        description: "Nome do cliente titular do pedido."
+      - name: cidade
+        description: "Cidade do cliente no momento do pedido."
+      - name: uf
+        description: "Estado (UF) do pedido para análise regional."
+      - name: data_pedido
+        description: "Data de realização do pedido."
+        data_tests:
+          - not_null
+      - name: status_pedido
+        description: "Status operacional do pedido."
+        data_tests:
+          - not_null
+      - name: metodo_pagamento
+        description: "Meio de pagamento utilizado."
+      - name: valor_pedido
+        description: "Valor bruto do pedido."
+        data_tests:
+          - not_null
+      - name: valor_receita_liquida
+        description: "Valor contabilizado como receita (apenas pedidos concluídos)."
+        data_tests:
+          - not_null
+      - name: is_pedido_concluido
+        description: "Flag booleana indicando se o pedido foi concluído com sucesso."
+        data_tests:
+          - not_null

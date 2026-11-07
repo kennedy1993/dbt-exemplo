@@ -37,8 +37,9 @@ O foco deste documento é detalhar o **setup profissional, governança, seguran�
 | **Isolamento de Runtime Python** | Concluído | `.venv` com Python 3.12 e dependências congeladas em `requirements.txt` |
 | **Governança no GCP / IAM** | Concluído | Service Account com papéis de execução de Jobs e escrita no BigQuery |
 | **Conexão dbt Core ↔ BigQuery** | Concluído | `dbt debug` com resultado `All checks passed!` |
-| **Deploy de Teste (Smoke Test)** | Concluído | Materialização de tabela e view no dataset `dbt_dev` do BigQuery |
-| **Validação de Qualidade de Dados** | Concluído | 5 testes executados com 100% de sucesso (`4 generic tests` + `1 unit test`) |
+| **Ingestão via Seeds (`dbt seed`)** | Concluído | `raw_clientes` (10 linhas) e `raw_pedidos` (15 linhas) carregados no BigQuery |
+| **Arquitetura em 3 Camadas (`dbt run`)** | Concluído | 7 modelos criados em `dbt_dev` (`staging`, `intermediate` e `marts` Star Schema) |
+| **Validação de Qualidade (`dbt test`)** | Concluído | **43 testes executados com 100% de sucesso** (`41 data tests` + `2 unit tests`) |
 
 ---
 
@@ -323,17 +324,19 @@ Para inspecionar visualmente os dados criados pelo dbt no BigQuery:
 | `Access Denied: User does not have bigquery.jobs.create permission` | A Service Account tinha papel de dados, mas não de execução de consultas. | Concedido papel `BigQuery Admin` (ou `BigQuery Job User`) no IAM do projeto GCP. |
 | `Could not find profile named 'dbt_exemplo'` | O dbt procura por padrão em `~/.dbt/profiles.yml`. | Criado `profiles.yml` local e executado com `--profiles-dir .`, além de espelhado em `~/.dbt/`. |
 | `FAIL 1 not_null_my_first_dbt_model_id` | Modelo de exemplo vinha com registro nulo intencional (`SELECT null AS id`). | Ajustado filtro `WHERE id IS NOT NULL` no modelo, alcançando 100% de aprovação nos testes. |
+| `Syntax Error at line ... dbtools` | Extensão *Oracle SQL Developer* tentando validar arquivos `.sql` com sintaxe Jinja (`{{ ... }}`) como SQL puro. | Configurado [`.vscode/settings.json`](file:///c:/Users/lustrabits/Documents/Projeto-DBT/.vscode/settings.json) associando `*.sql` para `jinja-sql`. |
 
 ---
 
 ## 🗺 Roadmap das Próximas Fases
 
 - [x] **Fase 1: Setup & Configuração de Ambiente** (Concluído)
-- [ ] **Fase 2: Camada Staging (`models/staging/`)**:
-  - Limpeza primária, renomeação de colunas e tipagem a partir de dados brutos (`raw`).
-- [ ] **Fase 3: Camada Intermediária (`models/intermediate/`)**:
-  - Junções de regras de negócio e agregações temporais.
-- [ ] **Fase 4: Camada Marts (`models/marts/`)**:
-  - Modelagem dimensional (Tabelas Fato e Dimensões - Star Schema).
+- [x] **Fase 2: Ingestão via Seeds & Camada Staging (`models/staging/`)**:
+  - Carga de `raw_clientes.csv` e `raw_pedidos.csv` via `dbt seed`.
+  - Limpeza primária, renomeação de colunas e tipagem em `stg_clientes` e `stg_pedidos`.
+- [x] **Fase 3: Camada Intermediária (`models/intermediate/`)**:
+  - Agregações financeiras e comportamentais por cliente em `int_pedidos_por_cliente`.
+- [x] **Fase 4: Camada Marts (`models/marts/`)**:
+  - Modelagem dimensional Star Schema (`dim_clientes` com segmentação VIP/Ativo e `fct_pedidos`).
 - [ ] **Fase 5: Catálogo & Documentação**:
-  - Geração do portal interativo de documentação via `dbt docs serve`.
+  - Geração do portal interativo de documentação via `dbt docs generate && dbt docs serve`.
