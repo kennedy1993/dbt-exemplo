@@ -397,6 +397,8 @@ ORDER BY data_pedido DESC, pedido_id DESC;
    - Conversão segura de tipos (`INT64`, `DATE`, `NUMERIC`) na camada `staging`, protegendo o pipeline contra quebras por dados malformados.
 4. **Contratos de Dados e Testes Unitários**:
    - Validação de chaves primárias (`unique`, `not_null`), domínios (`accepted_values`), integridade referencial (`relationships`) e testes unitários de regras de negócio (`dim_clientes_test.yml`).
+5. **Particionamento e Clusterização Nativa no BigQuery (`fct_pedidos`)**:
+   - Tabela fato particionada mensalmente por `data_pedido` (`granularity: month`) e clusterizada por `["status_pedido", "cliente_id"]` para otimização de custos e performance em consultas analíticas.
 
 ---
 
