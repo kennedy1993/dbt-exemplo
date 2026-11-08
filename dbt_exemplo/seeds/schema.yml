@@ -1,0 +1,41 @@
+version: 2
+
+seeds:
+  - name: raw_clientes
+    description: "Carga inicial (Seed CSV) contendo os dados cadastrais brutos de clientes do e-commerce antes do tratamento na camada Staging."
+    columns:
+      - name: cliente_id
+        description: "Identificador único bruto do cliente."
+        data_tests:
+          - unique
+          - not_null
+      - name: nome_cliente
+        description: "Nome completo do cliente no sistema transacional de origem."
+      - name: email
+        description: "Endereço de e-mail original informado no cadastro."
+      - name: cidade
+        description: "Cidade de residência do cliente."
+      - name: estado
+        description: "Sigla da Unidade Federativa (UF) de origem."
+      - name: data_cadastro
+        description: "Data de registro do cliente na plataforma (formato YYYY-MM-DD)."
+
+  - name: raw_pedidos
+    description: "Carga inicial (Seed CSV) contendo o histórico bruto de pedidos realizados no e-commerce antes da higienização na camada Staging."
+    columns:
+      - name: pedido_id
+        description: "Identificador único bruto do pedido."
+        data_tests:
+          - unique
+          - not_null
+      - name: cliente_id
+        description: "Identificador do cliente que realizou o pedido (chave estrangeira para raw_clientes)."
+      - name: data_pedido
+        description: "Data em que o pedido foi efetuado (formato YYYY-MM-DD)."
+      - name: status_pedido
+        description: "Status original do pedido (concluido, cancelado, pendente, em_processamento)."
+      - name: valor_pedido
+        description: "Valor monetário bruto do pedido em Reais (BRL)."
+      - name: metodo_pagamento
+        description: "Forma de pagamento utilizada (pix, cartao_credito, boleto)."
+
