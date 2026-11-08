@@ -71,6 +71,12 @@ flowchart TD
     B -- "dbt seed / dbt run / dbt test" --> E
 ```
 
+### 🌐 Grafo de Linhagem Real (dbt Docs Lineage Graph - DAG)
+
+Abaixo está o grafo de linhagem (DAG) real gerado pelo `dbt docs serve`, demonstrando o fluxo completo desde os arquivos brutos (`seeds`) até a camada `marts` (**Star Schema**) e seus testes unitários:
+
+![Grafo de Linhagem (DAG) no dbt Docs](./assets/lineage_graph.png)
+
 ---
 
 ## 📁 Estrutura do Repositório
@@ -328,8 +334,10 @@ Done. PASS=43 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=43
 #### 5. Geração do Catálogo e Grafo de Linhagem (`dbt docs`)
 ```bash
 dbt docs generate --profiles-dir .
-dbt docs serve --profiles-dir .
+dbt docs serve --profiles-dir . --port 8085
 ```
+
+![Grafo de Linhagem (DAG) no dbt Docs](./assets/lineage_graph.png)
 
 ---
 
@@ -368,6 +376,14 @@ SELECT
 FROM `analise-dados-513914.dbt_dev.fct_pedidos`
 ORDER BY data_pedido DESC, pedido_id DESC;
 ```
+
+#### Evidências de Auditoria no DBeaver
+
+**1. Dimensão de Clientes (`dim_clientes`):**
+![Resultado dim_clientes no DBeaver](./assets/dbeaver_dim_clientes.jpg)
+
+**2. Tabela Fato de Pedidos (`fct_pedidos`):**
+![Resultado fct_pedidos no DBeaver](./assets/dbeaver_fct_pedidos.jpg)
 
 ---
 
