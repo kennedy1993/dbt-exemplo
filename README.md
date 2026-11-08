@@ -40,6 +40,7 @@ O foco deste documento é detalhar o **setup profissional, governança, seguran�
 | **Ingestão via Seeds (`dbt seed`)** | Concluído | `raw_clientes` (10 linhas) e `raw_pedidos` (15 linhas) carregados no BigQuery |
 | **Arquitetura em 3 Camadas (`dbt run`)** | Concluído | 7 modelos criados em `dbt_dev` (`staging`, `intermediate` e `marts` Star Schema) |
 | **Validação de Qualidade (`dbt test`)** | Concluído | **43 testes executados com 100% de sucesso** (`41 data tests` + `2 unit tests`) |
+| **Catálogo & Linhagem (`dbt docs`)** | Concluído | Catálogo (`catalog.json`) e manifesto (`manifest.json`) gerados via `dbt docs generate` |
 
 ---
 
@@ -55,16 +56,19 @@ flowchart TD
 
     subgraph Google_Cloud["Google Cloud Platform (analise-dados-513914)"]
         direction TB
-        D["IAM & Security\n(dbt-707 Service Account)"] --> E["Motor de Processamento\n(BigQuery Engine)"]
-        E --> F["Dataset: dbt_dev\n- my_first_dbt_model (Table)\n- my_second_dbt_model (View)"]
+        D["IAM & Security\n(dbt-707 Service Account)"] --> E["Motor de Processamento\n(BigQuery Engine - Dataset: dbt_dev)"]
+        E --> S["Seeds (CSV Raw)\n- raw_clientes\n- raw_pedidos"]
+        S --> STG["Camada Staging (Views)\n- stg_clientes\n- stg_pedidos"]
+        STG --> INT["Camada Intermediate (View)\n- int_pedidos_por_cliente"]
+        INT --> MARTS["Camada Marts - Star Schema (Tables)\n- dim_clientes\n- fct_pedidos"]
     end
 
     subgraph Analytics_Layer["Camada de Auditoria e Consumo"]
-        F --> G["DBeaver / BI Tools\n(Inspeção de Esquemas e Consultas)"]
+        MARTS --> G["DBeaver / BI Tools\n(Inspeção de Esquemas e Consultas)"]
     end
 
     C -- "Autenticação via Chave JSON" --> D
-    B -- "dbt run / dbt test" --> E
+    B -- "dbt seed / dbt run / dbt test" --> E
 ```
 
 ---
@@ -74,25 +78,44 @@ flowchart TD
 ```text
 Projeto-DBT/
 │
+├── .vscode/
+│   └── settings.json              # Associa *.sql a jinja-sql para evitar falsos positivos de linter
 ├── .gitignore                     # Protege credenciais (*.json), .venv/ e diretórios temporários
 ├── requirements.txt               # Lista exata das dependências instaladas (pip freeze)
 ├── README.md                      # Documentação técnica e governança do repositório
 │
 └── dbt_exemplo/                   # Subdiretório do projeto dbt (isolamento de infraestrutura)
-    ├── dbt_project.yml            # Manifesto principal do projeto dbt
+    ├── dbt_project.yml            # Manifesto principal do projeto dbt e materializações por camada
     ├── profiles.yml               # Configuração da conexão com BigQuery (Dev / Prod)
     ├── service-account.json       # Chave privada da Service Account (IGNORADA PELO GIT)
     │
-    ├── models/                    # Camadas de transformação analítica
-    │   └── example/
-    │       ├── my_first_dbt_model.sql       # Modelo materializado como TABLE
-    │       ├── my_second_dbt_model.sql      # Modelo materializado como VIEW (com {{ ref(...) }})
-    │       ├── my_second_dbt_model_test.yml # Teste unitário de lógica de transformação
-    │       └── schema.yml                   # Testes de integridade (unique, not_null) e documentação
+    ├── seeds/                     # Cargas de dados brutos (CSV) via dbt seed
+    │   ├── raw_clientes.csv       # Cadastro bruto de clientes (10 registros)
+    │   └── raw_pedidos.csv        # Histórico bruto de pedidos de e-commerce (15 registros)
+    │
+    ├── models/                    # Arquitetura Medalhão / 3 Camadas do dbt
+    │   ├── staging/               # Camada 1: Limpeza, padronização e tipagem (Views)
+    │   │   ├── stg_clientes.sql
+    │   │   ├── stg_pedidos.sql
+    │   │   └── schema.yml         # Testes de contrato (unique, not_null, accepted_values, relationships)
+    │   │
+    │   ├── intermediate/          # Camada 2: Regras de negócio e agregações intermediárias (Views)
+    │   │   ├── int_pedidos_por_cliente.sql
+    │   │   └── schema.yml
+    │   │
+    │   ├── marts/                 # Camada 3: Modelos Finais Star Schema para BI (Tables)
+    │   │   ├── dim_clientes.sql   # Dimensão de clientes com segmentação (VIP, Ativo, Sem Compras)
+    │   │   ├── fct_pedidos.sql    # Tabela Fato de pedidos enriquecida com receita líquida
+    │   │   ├── dim_clientes_test.yml # Teste unitário validando regra de segmentação de clientes
+    │   │   └── schema.yml         # Documentação executiva e testes de integridade da camada Marts
+    │   │
+    │   └── example/               # Modelos de validação inicial do template dbt
+    │       ├── my_first_dbt_model.sql
+    │       ├── my_second_dbt_model.sql
+    │       └── schema.yml
     │
     ├── analyses/                  # Scripts SQL analíticos para exploração (não materializados)
     ├── macros/                    # Funções Jinja/SQL reutilizáveis
-    ├── seeds/                     # Cargas de arquivos CSV de apoio
     ├── snapshots/                 # Rastreamento de histórico (Slowly Changing Dimensions)
     └── tests/                     # Testes SQL singulares customizados
 ```
@@ -199,6 +222,12 @@ models:
   dbt_exemplo:
     example:
       +materialized: view
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
 ```
 
 ---
@@ -230,7 +259,7 @@ dbt_exemplo:
 
 ---
 
-### Etapa 6: Validação de Ponta a Ponta (`dbt debug`, `run`, `test`)
+### Etapa 6: Validação de Ponta a Ponta (`dbt debug`, `seed`, `run`, `test`, `docs`)
 
 Com o ambiente ativado, navegue para a pasta `dbt_exemplo/`:
 ```bash
@@ -258,61 +287,100 @@ Registered adapter: bigquery=1.12.2
 All checks passed!
 ```
 
-#### 2. Compilação do Grafo de Modelos (DAG)
+#### 2. Carga de Dados Brutos via Seeds (`dbt seed`)
 ```bash
-dbt compile --profiles-dir .
+dbt seed --profiles-dir .
+```
+Resultado validado:
+```text
+1 of 2 OK loaded seed file dbt_dev.raw_clientes .................... [INSERT 10 in 5.83s]
+2 of 2 OK loaded seed file dbt_dev.raw_pedidos ..................... [INSERT 15 in 5.42s]
+Completed successfully. PASS=2 WARN=0 ERROR=0 TOTAL=2
 ```
 
-#### 3. Execução das Transformações (Deploy de Modelos)
+#### 3. Execução das Transformações em 3 Camadas (`dbt run`)
 ```bash
 dbt run --profiles-dir .
 ```
 Resultado validado:
 ```text
-1 of 2 OK created sql table model dbt_dev.my_first_dbt_model .... [CREATE TABLE (1.0 rows) in 6.67s]
-2 of 2 OK created sql view model dbt_dev.my_second_dbt_model ..... [CREATE VIEW in 4.19s]
-Finished running 1 table model, 1 view model.
-Completed successfully. PASS=2 WARN=0 ERROR=0 TOTAL=2
+1 of 7 OK created sql table model dbt_dev.my_first_dbt_model ....... [CREATE TABLE (1.0 rows)]
+2 of 7 OK created sql view model dbt_dev.stg_clientes .............. [CREATE VIEW]
+3 of 7 OK created sql view model dbt_dev.stg_pedidos ............... [CREATE VIEW]
+4 of 7 OK created sql view model dbt_dev.my_second_dbt_model ....... [CREATE VIEW]
+5 of 7 OK created sql view model dbt_dev.int_pedidos_por_cliente ... [CREATE VIEW]
+6 of 7 OK created sql table model dbt_dev.fct_pedidos .............. [CREATE TABLE (15.0 rows)]
+7 of 7 OK created sql table model dbt_dev.dim_clientes ............. [CREATE TABLE (10.0 rows)]
+Completed successfully. PASS=7 WARN=0 ERROR=0 TOTAL=7
 ```
 
-#### 4. Execução dos Testes Automatizados de Qualidade
+#### 4. Execução dos Testes Automatizados de Qualidade (`dbt test`)
 ```bash
 dbt test --profiles-dir .
 ```
 Resultado validado:
 ```text
-1 of 5 PASS not_null_my_first_dbt_model_id ...................... [PASS in 5.13s]
-2 of 5 PASS not_null_my_second_dbt_model_id ..................... [PASS in 5.37s]
-3 of 5 PASS unique_my_first_dbt_model_id ........................ [PASS in 5.27s]
-4 of 5 PASS unique_my_second_dbt_model_id ....................... [PASS in 5.70s]
-5 of 5 PASS my_second_dbt_model::test_my_second_dbt_model_filters_id_1 [PASS in 11.25s]
-Completed successfully. PASS=5 WARN=0 ERROR=0 TOTAL=5
+Found 7 models, 2 seeds, 41 data tests, 561 macros, 2 unit tests
+Completed successfully
+Done. PASS=43 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=43
+```
+
+#### 5. Geração do Catálogo e Grafo de Linhagem (`dbt docs`)
+```bash
+dbt docs generate --profiles-dir .
+dbt docs serve --profiles-dir .
 ```
 
 ---
 
 ### Etapa 7: Conexão e Auditoria no DBeaver
 
-Para inspecionar visualmente os dados criados pelo dbt no BigQuery:
-1. Abra o **DBeaver**.
-2. Conexão existente: `analise-dados-513914`.
-3. Clique com o botão direito sobre a conexão e selecione **Atualizar (Refresh)**.
-4. Expanda a árvore:
-   - `analise-dados-513914` > `dbt_dev` > `Tabelas`: **`my_first_dbt_model`**
-   - `analise-dados-513914` > `dbt_dev` > `Views`: **`my_second_dbt_model`**
+Para inspecionar visualmente o modelo **Star Schema** criado pelo dbt no BigQuery:
+1. Abra o **DBeaver** e atualize (`F5`) a conexão `analise-dados-513914` > `dbt_dev`.
+2. Execute as consultas analíticas abaixo:
+
+```sql
+-- 1. Dimensão de Clientes (com Segmentação VIP, Ativo e Sem Compras Concluídas)
+SELECT
+    cliente_id,
+    nome_cliente,
+    cidade,
+    uf,
+    total_pedidos,
+    pedidos_concluidos,
+    receita_total,
+    ticket_medio,
+    segmento_cliente
+FROM `analise-dados-513914.dbt_dev.dim_clientes`
+ORDER BY receita_total DESC;
+
+-- 2. Tabela Fato de Pedidos Enriquecida
+SELECT
+    pedido_id,
+    data_pedido,
+    nome_cliente,
+    cidade,
+    uf,
+    status_pedido,
+    metodo_pagamento,
+    valor_pedido,
+    valor_receita_liquida
+FROM `analise-dados-513914.dbt_dev.fct_pedidos`
+ORDER BY data_pedido DESC, pedido_id DESC;
+```
 
 ---
 
 ## 💎 Padrões de Qualidade e Boas Práticas Adotadas
 
 1. **Column Pruning (Otimização BigQuery)**:
-   - Substituição de `SELECT *` por `SELECT id` em modelos analíticos para evitar custos de varredura (*bytes scanned*).
-2. **Materialização Declarativa**:
-   - Cada modelo contém seu bloco `{{ config(materialized = 'table' | 'view') }}` explícito, facilitando a legibilidade.
-3. **Modularidade e Linhagem**:
-   - Uso exclusivo de `{{ ref('nome_do_modelo') }}` para garantir ordenação correta na DAG do dbt.
-4. **Isolamento de Credenciais**:
-   - Sincronização do `profiles.yml` local para a pasta do usuário (`~/.dbt/profiles.yml`), permitindo executar comandos diretamente com ou sem a flag `--profiles-dir`.
+   - Listagem explícita de colunas em todas as CTEs (zero uso de `SELECT *`) para minimizar custos de leitura (*bytes scanned*).
+2. **Materialização Híbrida (`Views` vs `Tables`)**:
+   - Camadas `staging` e `intermediate` materializadas como `view` (economia de armazenamento) e camada `marts` materializada como `table` (alta performance para leitura no BI e DBeaver).
+3. **Tipagem Defensiva (`SAFE_CAST`)**:
+   - Conversão segura de tipos (`INT64`, `DATE`, `NUMERIC`) na camada `staging`, protegendo o pipeline contra quebras por dados malformados.
+4. **Contratos de Dados e Testes Unitários**:
+   - Validação de chaves primárias (`unique`, `not_null`), domínios (`accepted_values`), integridade referencial (`relationships`) e testes unitários de regras de negócio (`dim_clientes_test.yml`).
 
 ---
 
@@ -323,6 +391,7 @@ Para inspecionar visualmente os dados criados pelo dbt no BigQuery:
 | `Get-ChildItem : Missing an argument for parameter 'LiteralPath'` | Digitação de `ls -l` no PowerShell (que interpreta `-l` como `-LiteralPath`). | Utilizar `ls -Force` no PowerShell ou mudar o terminal padrão para **Git Bash**. |
 | `Access Denied: User does not have bigquery.jobs.create permission` | A Service Account tinha papel de dados, mas não de execução de consultas. | Concedido papel `BigQuery Admin` (ou `BigQuery Job User`) no IAM do projeto GCP. |
 | `Could not find profile named 'dbt_exemplo'` | O dbt procura por padrão em `~/.dbt/profiles.yml`. | Criado `profiles.yml` local e executado com `--profiles-dir .`, além de espelhado em `~/.dbt/`. |
+| `No dbt_project.yml found at expected path` | Execução do comando `dbt run` na pasta raiz `Projeto-DBT` em vez da subpasta `dbt_exemplo`. | Entrar na pasta do projeto (`cd dbt_exemplo`) antes de rodar os comandos do dbt. |
 | `FAIL 1 not_null_my_first_dbt_model_id` | Modelo de exemplo vinha com registro nulo intencional (`SELECT null AS id`). | Ajustado filtro `WHERE id IS NOT NULL` no modelo, alcançando 100% de aprovação nos testes. |
 | `Syntax Error at line ... dbtools` | Extensão *Oracle SQL Developer* tentando validar arquivos `.sql` com sintaxe Jinja (`{{ ... }}`) como SQL puro. | Configurado [`.vscode/settings.json`](file:///c:/Users/lustrabits/Documents/Projeto-DBT/.vscode/settings.json) associando `*.sql` para `jinja-sql`. |
 
@@ -338,5 +407,5 @@ Para inspecionar visualmente os dados criados pelo dbt no BigQuery:
   - Agregações financeiras e comportamentais por cliente em `int_pedidos_por_cliente`.
 - [x] **Fase 4: Camada Marts (`models/marts/`)**:
   - Modelagem dimensional Star Schema (`dim_clientes` com segmentação VIP/Ativo e `fct_pedidos`).
-- [ ] **Fase 5: Catálogo & Documentação**:
-  - Geração do portal interativo de documentação via `dbt docs generate && dbt docs serve`.
+- [x] **Fase 5: Catálogo & Documentação**:
+  - Geração do catálogo e linhagem (`catalog.json` / `manifest.json`) via `dbt docs generate`.
