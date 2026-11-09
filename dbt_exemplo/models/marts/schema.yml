@@ -16,9 +16,9 @@ models:
       - name: email
         description: "E-mail principal de contato do cliente."
       - name: cidade
-        description: "Cidade de localização do cliente."
+        description: "Cidade cadastral atual de localização do cliente (SCD Tipo 1)."
       - name: uf
-        description: "Unidade Federativa (Estado) do cliente."
+        description: "Unidade Federativa (Estado) cadastral atual do cliente (SCD Tipo 1)."
       - name: data_cadastro
         description: "Data de cadastro do cliente."
       - name: total_pedidos
@@ -66,9 +66,9 @@ models:
       - name: nome_cliente
         description: "Nome do cliente titular do pedido."
       - name: cidade
-        description: "Cidade do cliente no momento do pedido."
+        description: "Cidade cadastral atual do cliente (obtida via join com stg_clientes - SCD Tipo 1). Para análise histórica de mudança de endereço (SCD Tipo 2), consulte o snapshot snp_clientes."
       - name: uf
-        description: "Estado (UF) do pedido para análise regional."
+        description: "Estado (UF) cadastral atual do cliente para análise regional (SCD Tipo 1)."
       - name: data_pedido
         description: "Data de realização do pedido."
         data_tests:
