@@ -1,11 +1,6 @@
 {{
     config(
         materialized = 'table',
-        partition_by = {
-            "field": "data_pedido",
-            "data_type": "date",
-            "granularity": "month"
-        },
         cluster_by = ["status_pedido", "cliente_id"]
     )
 }}

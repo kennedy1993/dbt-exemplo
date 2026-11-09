@@ -397,8 +397,8 @@ ORDER BY data_pedido DESC, pedido_id DESC;
    - Conversão segura de tipos (`INT64`, `DATE`, `NUMERIC`) na camada `staging`, protegendo o pipeline contra quebras por dados malformados.
 4. **Contratos de Dados e Testes Unitários**:
    - Validação de chaves primárias (`unique`, `not_null`), domínios (`accepted_values`), integridade referencial (`relationships`) e testes unitários de regras de negócio (`dim_clientes_test.yml`).
-5. **Particionamento e Clusterização Nativa no BigQuery (`fct_pedidos`)**:
-   - Tabela fato particionada mensalmente por `data_pedido` (`granularity: month`) e clusterizada por `["status_pedido", "cliente_id"]` para otimização de custos e performance em consultas analíticas.
+5. **Clusterização Nativa no BigQuery (`fct_pedidos`) e Snapshots SCD Tipo 2 (`snp_clientes`)**:
+   - Tabela fato clusterizada fisicamente por `["status_pedido", "cliente_id"]` para otimização de custos e performance, e rastreamento histórico de alterações cadastrais (`dbt_valid_from`, `dbt_valid_to`) via `dbt snapshot`.
 
 ---
 
@@ -412,6 +412,7 @@ ORDER BY data_pedido DESC, pedido_id DESC;
 | `No dbt_project.yml found at expected path` | Execução do comando `dbt run` na pasta raiz `Projeto-DBT` em vez da subpasta `dbt_exemplo`. | Entrar na pasta do projeto (`cd dbt_exemplo`) antes de rodar os comandos do dbt. |
 | `FAIL 1 not_null_my_first_dbt_model_id` | Modelo de exemplo vinha com registro nulo intencional (`SELECT null AS id`). | Ajustado filtro `WHERE id IS NOT NULL` no modelo, alcançando 100% de aprovação nos testes. |
 | `Syntax Error at line ... dbtools` | Extensão *Oracle SQL Developer* tentando validar arquivos `.sql` com sintaxe Jinja (`{{ ... }}`) como SQL puro. | Configurado [`.vscode/settings.json`](file:///c:/Users/lustrabits/Documents/Projeto-DBT/.vscode/settings.json) associando `*.sql` para `jinja-sql`. |
+| `CREATE TABLE (0.0 rows)` ao usar `partition_by` em datas históricas | No **BigQuery Sandbox (Free Tier)**, partições com data anterior a 60 dias expiram e são descartadas automaticamente. | Mantida a **Clusterização (`cluster_by`)** sem particionamento por data histórica no ambiente Sandbox, preservando todas as 15 linhas. |
 
 ---
 
